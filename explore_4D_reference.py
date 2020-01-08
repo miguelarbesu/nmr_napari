@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import sys
 import napari
 import numpy as np
+from scipy.stats import mode  
 import nmrglue as ng
 
 expn = sys.argv[1]
@@ -13,7 +13,7 @@ print('Loaded spectrum with dimensions {}'.format(data.shape))
 noise = np.median(data)
 maxint = data.max()
 
-minlev = (1e3)*noise
+minlev = noise
 maxlev = 0.1*maxint
 gamma = 1
 
@@ -28,3 +28,4 @@ v.add_image(data,
             name='4D',
             contrast_limits=(minlev, maxlev),
             gamma=gamma)
+
