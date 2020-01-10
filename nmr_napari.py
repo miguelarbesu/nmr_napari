@@ -15,7 +15,7 @@ Arguments:
     exp_path {str} -- path to experiment folder
 
 Returns:
-    v {qt instance} -- napari viewer
+    viewer {qt instance} -- napari viewer object
 """
 
 
@@ -98,7 +98,7 @@ def view_spectrum(exp_path):
         exp_path {str} -- Path to experiment file
 
     Returns:
-        viewer {napari instace} -- qt instance of napari
+        viewer {qt instance} -- napari viewer object
         specpars {dict} -- experimental parameters
         spectrum {np.array} -- nD array containing spectrum intensities
     """
