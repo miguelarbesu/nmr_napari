@@ -5,7 +5,8 @@ import os
 import sys
 import napari
 import nmrglue as ng
-import skimage
+import matplotlib.pyplot as plt
+from skimage import feature, exposure
 
 """This module contains functions to load and display NMR spectra using nmrglue
 and napari, along with other utilities.
@@ -27,7 +28,7 @@ def load_pipe(exp_path):
 
     Returns:
         specpars {dict} -- experimental parameters
-        spectrum {np.array} -- nD array containing spectrum intensities
+        spectrum {np.array} -- nD array containing intensities
     """
     specpars, spectrum = ng.fileio.pipe.read(exp_path)
     shape = spectrum.shape
@@ -51,7 +52,7 @@ def rescale(spectrum, scale=(0, 100)):
     init_vals = (spectrum.min(), spectrum.max())
     print('Min intensity={:.2e}\tMax intensity={:.2e}'.format(*init_vals))
     print('Re-scaled intensities to {} - {}'.format(*scale))
-    spectrum = skimage.exposure.rescale_intensity(spectrum, out_range=(0, 100))
+    spectrum = exposure.rescale_intensity(spectrum, out_range=(0, 100))
 
     return spectrum
 
@@ -60,18 +61,29 @@ def calc_hist(spectrum):
     """Calculate the histogram of a spectrum
 
     Arguments:
-        spectrum {np.ndarray} -- [description]
+        spectrum {np.array} -- nD array containing intensities
 
     Returns:
         counts {np.ndarray} -- Intensity value occurrences
         bins {np.ndarray} -- Center positions of computed bins
     """
-    counts, bins = skimage.exposure.histogram(spectrum)
+    counts, bins = exposure.histogram(spectrum)
 
     return counts, bins
 
 
-def calc_noise(counts, bins):
+def plot_hist(spectrum):
+    """Plot spectrum histogram
+
+    Arguments:
+        spectrum {np.array} -- nD array containing intensities
+    """
+    counts, bins = calc_hist(spectrum)
+    plt.plot(bins, counts)
+    plt.show()
+
+
+def calc_noise(spectrum):
     """Estimate noise from most repeated value in histogram
 
     Arguments:
@@ -81,6 +93,7 @@ def calc_noise(counts, bins):
     Returns:
         noise {float} -- Estimated noise level
     """
+    counts, bins = calc_hist(spectrum)
     noise = bins[counts.argmax()]
     print('Noise level estimated at {:.2f}'.format(noise))
 
@@ -100,14 +113,13 @@ def view_spectrum(exp_path):
     Returns:
         viewer {qt instance} -- napari viewer object
         specpars {dict} -- experimental parameters
-        spectrum {np.array} -- nD array containing spectrum intensities
+        spectrum {np.ndarray} -- nD array containing spectrum intensities
     """
     # Load spectrum, rescale, and estimate noise
     name = os.path.basename(exp_path)
     specpars, spectrum = load_pipe(exp_path)
     spectrum = rescale(spectrum)
-    counts, bins = calc_hist(spectrum)
-    noise = calc_noise(counts, bins)
+    noise = calc_noise(spectrum)
     # Define plotting parameters
     minlev = noise
     maxlev = spectrum.max()  # To be refined
@@ -124,6 +136,45 @@ def view_spectrum(exp_path):
                      gamma=gamma)
 
     return viewer, specpars, spectrum
+
+
+def pick_peaks(spectrum):
+    """Pick peaks from a spectrum
+
+    Arguments:
+        spectrum {np.array} -- nD array containing intensities
+
+    Returns:
+        peaks {np.ndarray} -- peak coordinates
+    """
+    noise = calc_noise(spectrum)
+    # NOTE: The peak picking parameters are harcoded for now assuming:
+    # 1. That the noise distribution is normal, centered at the estimated value
+    # 2. The average lenght of a protein construct is 120 aa
+    threshold = 2*noise
+    max_peaks = 120
+    peaks = feature.peak_local_max(spectrum,
+                                   threshold_abs=threshold,
+                                   num_peaks=max_peaks,
+                                   min_distance=1)
+    print('{} peaks found with minimum threshold at {:.2f}'.format(len(peaks),
+                                                                   threshold))
+    return peaks
+
+
+def draw_peaks(peaks, viewer):
+    """Draws peak list
+
+    Arguments:
+        peaks {np.ndarray} -- peak coordinates
+        viewer {qt instance} -- napari viewer object
+    """
+    viewer.add_points(peaks,
+                      name='peaks',
+                      size=4,
+                      symbol='x',
+                      n_dimensional=True)
+    print('{} peaks drawn'.format(len(peaks)))
 
 
 if __name__ == "__main__":
