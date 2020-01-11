@@ -177,6 +177,14 @@ def draw_peaks(peaks, viewer):
     print('{} peaks drawn'.format(len(peaks)))
 
 
+class Spectrum(specpars, spectrum):
+    def __init__(self, parameters, data, name):
+        Spectrum.parameters = specpars
+        Spectrum.data = spectrum
+        Spectrum.name = 'spectrum'
+    pass
+
+
 if __name__ == "__main__":
     exp_path = sys.argv[1]
     viewer, specpars, spectrum = view_spectrum(exp_path)
