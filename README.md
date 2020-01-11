@@ -24,19 +24,19 @@ This approach enables fast, interactive analysis of high dimensional data sets, 
 
 If you use [`conda`](https://docs.conda.io/en/latest/), a dependency file (`env.yml`) is provided.
 
-1. Install [napari](https://napari.org/tutorials/installation.html) and [nmrglue](https://nmrglue.readthedocs.io/en/latest/install.html).
+2. Install [napari](https://napari.org/tutorials/installation.html) and [nmrglue](https://nmrglue.readthedocs.io/en/latest/install.html).
 
 napari is installable using `pip`. If you used the environment above, it has
 been already installed.
 
-1. Start an IPython session with Qt as GUI backend
+3. Start an IPython session with Qt as GUI backend
 
 Two options are possible:
 
 - Start `ipython --gui qt`
 - Start `ipython`, then use magic `%gui qt`
 
-1. Import or run nmr_napari
+4. Import or run nmr_napari
 
 All functions can be imported from `nmr_napari.py`. The documentation should make use evident for now.
 
