@@ -4,6 +4,7 @@
 import os
 import sys
 import napari
+import numpy as np
 import nmrglue as ng
 import matplotlib.pyplot as plt
 from skimage import feature, exposure
@@ -27,63 +28,63 @@ def load_pipe(exp_path):
         exp_path {str} -- path to experiment folder
 
     Returns:
-        specpars {dict} -- experimental parameters
-        spectrum {np.array} -- nD array containing intensities
+        parameters {dict} -- experimental parameters
+        data {np.array} -- nD array containing intensities
     """
-    specpars, spectrum = ng.fileio.pipe.read(exp_path)
-    shape = spectrum.shape
+    parameters, data = ng.fileio.pipe.read(exp_path)
+    shape = data.shape
     print('Loaded {}D spectrum sized {}'.format(len(shape), shape))
 
-    return specpars, spectrum
+    return parameters, data
 
 
-def rescale(spectrum, scale=(0, 100)):
+def rescale(data, scale=(0, 100)):
     """Rescale spectrum intensity to fit a defined scale
 
     Arguments:
-        spectrum {np.ndarray} -- input spectrum
+        data {np.ndarray} -- input spectrum
 
     Keyword Arguments:
         scale {tuple} -- desired output scale (default: {(0,100)})
 
     Returns:
-        spectrum {np.array} -- rescaled spectrum
+        data {np.array} -- rescaled spectrum
     """
-    init_vals = (spectrum.min(), spectrum.max())
+    init_vals = (data.min(), data.max())
     print('Min intensity={:.2e}\tMax intensity={:.2e}'.format(*init_vals))
     print('Re-scaled intensities to {} - {}'.format(*scale))
-    spectrum = exposure.rescale_intensity(spectrum, out_range=(0, 100))
+    data = exposure.rescale_intensity(data, out_range=(0, 100))
 
-    return spectrum
+    return data
 
 
-def calc_hist(spectrum):
+def calc_hist(data):
     """Calculate the histogram of a spectrum
 
     Arguments:
-        spectrum {np.array} -- nD array containing intensities
+        data {np.array} -- nD array containing intensities
 
     Returns:
         counts {np.ndarray} -- Intensity value occurrences
         bins {np.ndarray} -- Center positions of computed bins
     """
-    counts, bins = exposure.histogram(spectrum)
+    counts, bins = exposure.histogram(data)
 
     return counts, bins
 
 
-def plot_hist(spectrum):
+def plot_hist(data):
     """Plot spectrum histogram
 
     Arguments:
-        spectrum {np.array} -- nD array containing intensities
+        data {np.array} -- nD array containing intensities
     """
-    counts, bins = calc_hist(spectrum)
+    counts, bins = calc_hist(data)
     plt.plot(bins, counts)
     plt.show()
 
 
-def calc_noise(spectrum):
+def calc_noise(data):
     """Estimate noise from most repeated value in histogram
 
     Arguments:
@@ -93,7 +94,7 @@ def calc_noise(spectrum):
     Returns:
         noise {float} -- Estimated noise level
     """
-    counts, bins = calc_hist(spectrum)
+    counts, bins = calc_hist(data)
     noise = bins[counts.argmax()]
     print('Noise level estimated at {:.2f}'.format(noise))
 
@@ -112,33 +113,33 @@ def view_spectrum(exp_path):
 
     Returns:
         viewer {qt instance} -- napari viewer object
-        specpars {dict} -- experimental parameters
-        spectrum {np.ndarray} -- nD array containing spectrum intensities
+        parameters {dict} -- experimental parameters
+        data {np.ndarray} -- nD array containing spectrum intensities
     """
     # Load spectrum, rescale, and estimate noise
     name = os.path.basename(exp_path)
-    specpars, spectrum = load_pipe(exp_path)
-    spectrum = rescale(spectrum)
-    noise = calc_noise(spectrum)
+    parameters, data = load_pipe(exp_path)
+    data = rescale(data)
+    noise = calc_noise(data)
     # Define plotting parameters
     minlev = noise
-    maxlev = spectrum.max()  # To be refined
+    maxlev = data.max()  # To be refined
     gamma = 1
     print('Min contour={:.2f}\tMax contour={:.2f}\tgamma={:.2f}'.format(minlev,
                                                                         maxlev,
                                                                         gamma))
     # Create viewer and add spectrum layer
     viewer = napari.Viewer()
-    viewer.add_image(spectrum,
+    viewer.add_image(data,
                      colormap='turbo',
                      name=name,
                      contrast_limits=(minlev, maxlev),
                      gamma=gamma)
 
-    return viewer, specpars, spectrum
+    return viewer, parameters, data
 
 
-def pick_peaks(spectrum):
+def pick_peaks(data):
     """Pick peaks from a spectrum
 
     Arguments:
@@ -147,13 +148,13 @@ def pick_peaks(spectrum):
     Returns:
         peaks {np.ndarray} -- peak coordinates
     """
-    noise = calc_noise(spectrum)
+    noise = calc_noise(data)
     # NOTE: The peak picking parameters are harcoded for now assuming:
     # 1. That the noise distribution is normal, centered at the estimated value
     # 2. The average lenght of a protein construct is 120 aa
     threshold = 2*noise
     max_peaks = 120
-    peaks = feature.peak_local_max(spectrum,
+    peaks = feature.peak_local_max(data,
                                    threshold_abs=threshold,
                                    num_peaks=max_peaks,
                                    min_distance=1)
@@ -177,14 +178,14 @@ def draw_peaks(peaks, viewer):
     print('{} peaks drawn'.format(len(peaks)))
 
 
-class Spectrum(specpars, spectrum):
-    def __init__(self, parameters, data, name):
-        Spectrum.parameters = specpars
-        Spectrum.data = spectrum
-        Spectrum.name = 'spectrum'
+class Spectrum():
+    def __init__(self, parameters, data, name='spectrum'):
+        self.parameters = parameters
+        self.data = data
+        self.name = name
     pass
 
 
 if __name__ == "__main__":
     exp_path = sys.argv[1]
-    viewer, specpars, spectrum = view_spectrum(exp_path)
+    viewer, parameters, data = view_spectrum(exp_path)
