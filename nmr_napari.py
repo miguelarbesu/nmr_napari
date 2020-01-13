@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-#
 
+import re
 import os
 import sys
 import napari
@@ -21,7 +22,21 @@ Returns:
 """
 
 
-def load_pipe(exp_path):
+def natural_sort(l):
+    """Sort list naturally
+
+    Arguments:
+        l {list} -- List of items.
+
+    Returns:
+        {list} -- List sorted naturally.
+    """
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(l, key=alphanum_key)
+
+
+def load_pipe(exp_path, pseudo=False):
     """Load nmrpipe formatted experiment
 
     Arguments:
@@ -31,9 +46,21 @@ def load_pipe(exp_path):
         parameters {dict} -- experimental parameters
         data {np.array} -- nD array containing intensities
     """
-    parameters, data = ng.fileio.pipe.read(exp_path)
-    shape = data.shape
-    print('Loaded {}D spectrum sized {}'.format(len(shape), shape))
+    if pseudo is True:
+        ftdirs = natural_sort(os.listdir(exp_path))
+        totalfts = len(ftdirs)
+        datalist = []
+        i = 1
+        for ft in ftdirs:
+            ftpath = os.path.join(exp_path, ft, 'test%03d.dat')
+            parameters, data = ng.fileio.pipe.read(ftpath)
+            print('Loaded spectrum {} of {}'.format(i, totalfts))
+            datalist.append(data)
+            i += 1
+        data = np.stack(datalist)
+    else:
+        parameters, data = ng.fileio.pipe.read(exp_path)
+    print('Loaded {}D spectrum sized {}'.format(data.ndim, data.shape))
 
     return parameters, data
 
