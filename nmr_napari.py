@@ -243,5 +243,10 @@ class Spectrum():
 
 if __name__ == "__main__":
     exp_path = sys.argv[1]
-    pseudo = sys.argv[2]
-    viewer, parameters, data = view_spectrum(exp_path, pseudo)
+    # Trick to pass an optional command line bool argument for pseudo dims  
+    try:
+        pseudo = sys.argv[2].lower() == 'true'
+    except IndexError:
+        pseudo=False
+
+    viewer, parameters, data = view_spectrum(exp_path, pseudo=pseudo)
