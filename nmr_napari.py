@@ -35,9 +35,12 @@ def natural_sort(l):
     alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
     return sorted(l, key=alphanum_key)
 
+import glob
 
 def load_pipe(exp_path, pseudo=False):
-    """Load nmrpipe formatted experiment
+    """Load nmrpipe formatted experiment.
+    The `pseudo` flag recognizes collections of succesive nD NMR experiments 
+    as a time pseudo-dimension, as in time resolved experiments.   
 
     Arguments:
         exp_path {str} -- path to experiment folder
@@ -47,12 +50,12 @@ def load_pipe(exp_path, pseudo=False):
         data {np.array} -- nD array containing intensities
     """
     if pseudo is True:
-        ftdirs = natural_sort(os.listdir(exp_path))
+        ftdirs = natural_sort(glob.glob(exp_path+'ft*'))
         totalfts = len(ftdirs)
         datalist = []
         i = 1
         for ft in ftdirs:
-            ftpath = os.path.join(exp_path, ft, 'test%03d.dat')
+            ftpath = ft+'/test%03d.dat'
             parameters, data = ng.fileio.pipe.read(ftpath)
             print('Loaded spectrum {} of {}'.format(i, totalfts))
             datalist.append(data)
@@ -63,6 +66,30 @@ def load_pipe(exp_path, pseudo=False):
     print('Loaded {}D spectrum sized {}'.format(data.ndim, data.shape))
 
     return parameters, data
+
+
+def draw_spectrum(data, viewer):
+    """
+    # Draw loaded spectrum after rescaling and noise estimation
+    Arguments
+        viewer {qt instance} -- napari viewer object
+        data {np.ndarray} -- nD array containing spectrum intensities
+    """
+    data = rescale(data)
+    noise = calc_noise(data)
+    # Define plotting parameters
+    minlev = noise
+    maxlev = data.max()  # To be refined
+    gamma = 1
+    print('Min contour={:.2f}\tMax contour={:.2f}\tgamma={:.2f}'.format(minlev,
+                                                                        maxlev,
+                                                                        gamma))
+    # Add spectrum layer to existing viewer
+    viewer.add_image(data,
+                     colormap='turbo',
+                     name='spectrum',
+                     contrast_limits=(minlev, maxlev),
+                     gamma=gamma)
 
 
 def rescale(data, scale=(0, 100)):
@@ -128,7 +155,7 @@ def calc_noise(data):
     return noise
 
 
-def view_spectrum(exp_path):
+def view_spectrum(exp_path, pseudo=False):
     """Load and visualize a spectrum using napari.
     Requires running from an IPython session with qt backend:
     `ipython --gui qt`
@@ -145,7 +172,9 @@ def view_spectrum(exp_path):
     """
     # Load spectrum, rescale, and estimate noise
     name = os.path.basename(exp_path)
-    parameters, data = load_pipe(exp_path)
+    if not name:
+        name='spectrum'
+    parameters, data = load_pipe(exp_path, pseudo)
     data = rescale(data)
     noise = calc_noise(data)
     # Define plotting parameters
@@ -166,7 +195,7 @@ def view_spectrum(exp_path):
     return viewer, parameters, data
 
 
-def pick_peaks(data):
+def pick_peaks(data, max_peaks = 120, times_noise=2):
     """Pick peaks from a spectrum
 
     Arguments:
@@ -179,8 +208,7 @@ def pick_peaks(data):
     # NOTE: The peak picking parameters are harcoded for now assuming:
     # 1. That the noise distribution is normal, centered at the estimated value
     # 2. The average lenght of a protein construct is 120 aa
-    threshold = 2*noise
-    max_peaks = 120
+    threshold = times_noise*noise
     peaks = feature.peak_local_max(data,
                                    threshold_abs=threshold,
                                    num_peaks=max_peaks,
@@ -215,4 +243,5 @@ class Spectrum():
 
 if __name__ == "__main__":
     exp_path = sys.argv[1]
-    viewer, parameters, data = view_spectrum(exp_path)
+    pseudo = sys.argv[2]
+    viewer, parameters, data = view_spectrum(exp_path, pseudo)
