@@ -49,7 +49,7 @@ def load_pipe(exp_path, pseudo=False):
 
     Arguments:
         exp_path {str} -- path to experiment folder
-        pseudo {bool} -- is there a pseudo-dimension? - i.e. time-resolved data 
+        pseudo {bool} -- is there a pseudo-dimension? - i.e. time-resolved data
 
     Returns:
         parameters {dict} -- experimental parameters
@@ -289,7 +289,8 @@ def pick_peaks(data, max_peaks=120, times_noise=2):
     peaks = feature.peak_local_max(data,
                                    threshold_abs=threshold,
                                    num_peaks=max_peaks,
-                                   min_distance=1)
+                                   min_distance=1,
+                                   exclude_border=True)
     print('{} peaks found with minimum threshold at {:.2f}'.format(len(peaks),
                                                                    threshold))
     return peaks
