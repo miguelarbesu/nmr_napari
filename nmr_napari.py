@@ -49,6 +49,7 @@ def load_pipe(exp_path, pseudo=False):
 
     Arguments:
         exp_path {str} -- path to experiment folder
+        pseudo {bool} -- is there a pseudo-dimension? - i.e. time-resolved data 
 
     Returns:
         parameters {dict} -- experimental parameters
@@ -78,6 +79,7 @@ def load_bruker(exp_path, ndim=4):
 
     Arguments:
         exp_path {str} -- path to experiment folder
+        ndim {int} -- dimensionality of the experiment
 
     Returns:
         parameters {dict} -- experimental parameters
@@ -185,7 +187,15 @@ def calc_noise(data):
     return noise
 
 
-def view_spectrum(exp_path, pseudo=False):
+def start_viewer():
+    """Creates a napari Viewer instance
+    """
+    viewer = napari.Viewer()
+
+    return viewer
+
+
+def view_pipe(exp_path, pseudo=False):
     """Load and visualize a spectrum using napari.
     Requires running from an IPython session with qt backend:
     `ipython --gui qt`
@@ -215,7 +225,7 @@ def view_spectrum(exp_path, pseudo=False):
                                                                         maxlev,
                                                                         gamma))
     # Create viewer and add spectrum layer
-    viewer = napari.Viewer()
+    viewer = start_viewer()
     viewer.add_image(data,
                      colormap='turbo',
                      name=name,
@@ -224,12 +234,42 @@ def view_spectrum(exp_path, pseudo=False):
 
     return viewer, parameters, data
 
-    def start_viewer():
-        """Creates a napari Viewer instance
-        """
-        viewer = napari.Viewer()
 
-        return viewer
+def view_bruker(exp_path, ndim=4):
+    """Load and visualize a Bruker spectrum using napari.
+
+    Arguments:
+        exp_path {str} -- Path to experiment file
+        ndim {int} -- Dimensionality of the experiment
+
+    Returns:
+        viewer {qt instance} -- napari viewer object
+        parameters {dict} -- experimental parameters
+        data {np.ndarray} -- nD array containing spectrum intensities
+    """
+    # Load spectrum, rescale, and estimate noise
+    name = os.path.basename(exp_path)
+    if not name:
+        name = 'spectrum'
+    parameters, data = load_bruker(exp_path, ndim)
+    data = rescale(data)
+    noise = calc_noise(data)
+    # Define plotting parameters
+    minlev = noise
+    maxlev = data.max()  # To be refined
+    gamma = 1
+    print('Min contour={:.2f}\tMax contour={:.2f}\tgamma={:.2f}'.format(minlev,
+                                                                        maxlev,
+                                                                        gamma))
+    # Create viewer and add spectrum layer
+    viewer = start_viewer()
+    viewer.add_image(data,
+                     colormap='turbo',
+                     name=name,
+                     contrast_limits=(minlev, maxlev),
+                     gamma=gamma)
+
+    return viewer, parameters, data
 
 
 def pick_peaks(data, max_peaks=120, times_noise=2):
@@ -286,4 +326,4 @@ if __name__ == "__main__":
     except IndexError:
         pseudo = False
 
-    viewer, parameters, data = view_spectrum(exp_path, pseudo=pseudo)
+    viewer, parameters, data = view_pipe(exp_path, pseudo=pseudo)
