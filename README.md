@@ -48,17 +48,35 @@ run nmr-napari.py PATH_TO_EXPFILE
 
 This will load and display the selected experiment file.
 
-Additionally, the script returns the following objects that can be used to progammatically interact wiht the spectrum:
+Alternatively, `import nmr_napari` and use the `nmr_napari.load_pipe()` or
+`nmr_napari.load_bruker()` functions to quickly load and inspect data sets.
 
-- `viewer`: The napari viewer instance.
-- `specpars`: A dictionary containing the NMR-speficic parameters of the spectrum.
-- `spectrum`: A n-dimensional array of intensity values.
+Both modes return the following objects, that can be used to progammatically
+interact with the data set:
+
+- `viewer`: A napari.Viewer instance.
+- `parameters`: A dictionary containing the NMR-speficic parameters of the spectrum.
+- `data`: A n-dimensional array of intensity values.
+
+Example:
+
+```python
+viewer, parameters, data = nmr_napari.load_bruker(path_to_expno, ndim=4)
+```
+
 
 ## Current limitations and next steps
 
-Currently, only nmrPipe-formatted binary files (`*.ft2`, `*.ft3`, `*.ft4`, ...) are supported. Loading Bruker-formatted spectra with `nmrglue` is straightforward and will be soon implemented, as well as collections of nmrPipe `*.dat` planes.
+Currently, nmrPipe and Bruker binary file formats are implemented.
 
-At this point, spectra are treated as arrays of pixels containing intensities. Referencing the dimensions to the corresponding chemical shift scales is a desirable feature under development.
+Dimensionality is parsed automatically for nmrPipe data sets, but has to be
+provided for Bruker experiments via the ndim keyword argument. 3 and 4
+dimensions are supported, but extension is trivial.
+
+Time-resolved experiments can be read as collections of nmrPipe `tes%03d.dat`
+planes stored in consecutive `ft*/` folders.
+
+At this stage, spectra are treated as arrays of pixels containing intensities. Referencing the dimensions to the corresponding chemical shift scales is a desirable feature under development.
 
 ## References
 
