@@ -4,6 +4,7 @@
 import re
 import os
 import sys
+import glob
 import napari
 import numpy as np
 import nmrglue as ng
@@ -22,25 +23,29 @@ Returns:
 """
 
 
+def convert(text):
+    """Convert digits to alphanumeric text"""
+    if text.isdigit():
+        return int(text)
+    else:
+        return text
+
+
+def alphanum_key(key):
+    """Transform a list of strings to alphanumeric"""
+    key = [convert(c) for c in re.split('([0-9]+)', key)]
+    return key
+
+
 def natural_sort(l):
-    """Sort list naturally
-
-    Arguments:
-        l {list} -- List of items.
-
-    Returns:
-        {list} -- List sorted naturally.
-    """
-    convert = lambda text: int(text) if text.isdigit() else text.lower()
-    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    """Sort lists alphanumerically"""
     return sorted(l, key=alphanum_key)
 
-import glob
 
 def load_pipe(exp_path, pseudo=False):
     """Load nmrpipe formatted experiment.
-    The `pseudo` flag recognizes collections of succesive nD NMR experiments 
-    as a time pseudo-dimension, as in time resolved experiments.   
+    The `pseudo` flag recognizes collections of succesive nD NMR experiments
+    as a time pseudo-dimension, as in time resolved experiments.
 
     Arguments:
         exp_path {str} -- path to experiment folder
@@ -64,6 +69,31 @@ def load_pipe(exp_path, pseudo=False):
     else:
         parameters, data = ng.fileio.pipe.read(exp_path)
     print('Loaded {}D spectrum sized {}'.format(data.ndim, data.shape))
+
+    return parameters, data
+
+
+def load_bruker(exp_path, ndim=4):
+    """Load Bruker formatted experiment.
+
+    Arguments:
+        exp_path {str} -- path to experiment folder
+
+    Returns:
+        parameters {dict} -- experimental parameters
+        data {np.array} -- nD array containing intensities
+    """
+    procno = os.path.join(exp_path, 'pdata', '1')
+    print(procno)
+
+    if ndim == 4:
+        parameters, data = ng.fileio.bruker.read_pdata(procno,
+                                                       bin_files=['4rrrr'])
+        print('Loaded {}D spectrum sized {}'.format(data.ndim, data.shape))
+    if ndim == 3:
+        parameters, data = ng.fileio.bruker.read_pdata(procno,
+                                                       bin_files=['3rrr'])
+        print('Loaded {}D spectrum sized {}'.format(data.ndim, data.shape))
 
     return parameters, data
 
@@ -173,7 +203,7 @@ def view_spectrum(exp_path, pseudo=False):
     # Load spectrum, rescale, and estimate noise
     name = os.path.basename(exp_path)
     if not name:
-        name='spectrum'
+        name = 'spectrum'
     parameters, data = load_pipe(exp_path, pseudo)
     data = rescale(data)
     noise = calc_noise(data)
@@ -194,8 +224,15 @@ def view_spectrum(exp_path, pseudo=False):
 
     return viewer, parameters, data
 
+    def start_viewer():
+        """Creates a napari Viewer instance
+        """
+        viewer = napari.Viewer()
 
-def pick_peaks(data, max_peaks = 120, times_noise=2):
+        return viewer
+
+
+def pick_peaks(data, max_peaks=120, times_noise=2):
     """Pick peaks from a spectrum
 
     Arguments:
@@ -242,11 +279,11 @@ class Spectrum():
 
 
 if __name__ == "__main__":
-    exp_path = sys.argv[1]
-    # Trick to pass an optional command line bool argument for pseudo dims  
+    exp_path = str(sys.argv[1])
+    # Trick to pass an optional command line bool argument for pseudo dims
     try:
         pseudo = sys.argv[2].lower() == 'true'
     except IndexError:
-        pseudo=False
+        pseudo = False
 
     viewer, parameters, data = view_spectrum(exp_path, pseudo=pseudo)
