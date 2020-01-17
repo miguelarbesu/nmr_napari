@@ -86,8 +86,6 @@ def load_bruker(exp_path, ndim=4):
         data {np.array} -- nD array containing intensities
     """
     procno = os.path.join(exp_path, 'pdata', '1')
-    print(procno)
-
     if ndim == 4:
         parameters, data = ng.fileio.bruker.read_pdata(procno,
                                                        bin_files=['4rrrr'])
