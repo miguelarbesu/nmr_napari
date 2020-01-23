@@ -213,6 +213,7 @@ def view_pipe(exp_path, pseudo=False):
     if not name:
         name = 'spectrum'
     parameters, data = load_pipe(exp_path, pseudo)
+    unscaled_noise = calc_noise(data)
     data = rescale(data)
     noise = calc_noise(data)
     # Define plotting parameters
