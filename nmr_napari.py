@@ -60,13 +60,21 @@ def load_pipe(exp_path, pseudo=False):
         totalfts = len(ftdirs)
         datalist = []
         i = 1
-        for ft in ftdirs:
-            ftpath = ft+'/test%03d.dat'
+        # Dirty solution to load tr2D as collections of *.ft2
+        if totalfts == 0:
+            ftpath = exp_path+'/test%03d.ft2'
             parameters, data = ng.fileio.pipe.read(ftpath)
             print('Loaded spectrum {} of {}'.format(i, totalfts))
             datalist.append(data)
             i += 1
-        data = np.stack(datalist)
+        else:
+            for ft in ftdirs:
+                ftpath = ft+'/test%03d.dat'
+                parameters, data = ng.fileio.pipe.read(ftpath)
+                print('Loaded spectrum {} of {}'.format(i, totalfts))
+                datalist.append(data)
+                i += 1
+            data = np.stack(datalist)
     else:
         parameters, data = ng.fileio.pipe.read(exp_path)
     print('Loaded {}D spectrum sized {}'.format(data.ndim, data.shape))
