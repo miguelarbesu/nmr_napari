@@ -1,6 +1,6 @@
 # nmr_napari
 
-A collection of utilities for visualization and analysis of n-dimensional Nulear Magnetic ResonanceNMR data sets using [**napari**](https://www.napari.org/) and [**nmrglue**](https://www.nmrglue.com/)<sup>1</sup>.
+A collection of utilities for visualization and analysis of n-dimensional Nuclear Magnetic ResonanceNMR data sets using [**napari**](https://www.napari.org/) and [**nmrglue**](https://www.nmrglue.com/)<sup>1</sup>.
 
 ![4D HNCOCA spectrum](./img/4D_travel.gif)
 
